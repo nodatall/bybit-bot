@@ -6,7 +6,7 @@ let lastPeriod
 let hlv
 let buy
 
-module.exports = function handleCandles(candles) {
+module.exports = function(candles) {
   const { high, low, open_time, close } = candles
   if (!lastPeriod) {
     lastPeriod = open_time
@@ -17,7 +17,7 @@ module.exports = function handleCandles(candles) {
     highs.push(high)
     lows.push(low)
     if (highs.length > 10) {
-      calculateSSL({lows, highs, close})
+      return calculateSSL({lows, highs, close})
     }
   } else {
     if (high > highs[highs.length - 1]) {
@@ -28,7 +28,7 @@ module.exports = function handleCandles(candles) {
     }
 
     if (highs.length > 10) {
-      calculateSSL({lows, highs, close})
+      return calculateSSL({lows, highs, close})
     }
   }
 }
@@ -42,11 +42,11 @@ function calculateSSL({lows, highs, close}) {
   const sslDown = hlv < 0 ? highSMA : lowSMA
   const sslUp = hlv < 0 ? lowSMA : highSMA
   if (sslUp > sslDown) {
-    // TRIGGERS cross on initial load when there is no buy, but should not trigger
-    if (!buy) console.log(`-:: CROSSED! BUY BUY ::-`)
+    if (buy === undefined) buy = true
+    if (!buy) return 'buy'
     buy = true
   } else {
-    if (buy) console.log(`-:: CROSSED! SELL SELL SELL ::-`)
+    if (buy) return 'sell'
     buy = false
   }
 }
