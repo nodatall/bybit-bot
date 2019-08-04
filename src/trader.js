@@ -1,22 +1,29 @@
 const request = require('request-promise')
 const crypto = require('crypto')
 
+const { getHighestBuyLowestSell } = require('./orderbook')
+
+function openLimitOrderAtBestPrice({ side }) {
+  const { highestBuy, lowestSell } = getHighestBuyLowestSell()
+  openLimitOrder({
+    qty: 100,
+    price: side === 'Sell' ? lowestSell : highestBuy,
+    side,
+  }).then(
+    console.log,
+    console.log,
+  )
+}
+
 function openLimitOrder({ qty, price, side }) {
-  openOrder({
+  return openOrder({
     order_type: 'Limit',
     price,
     qty,
     side,
     symbol: 'BTCUSD',
     time_in_force: 'PostOnly',
-  }).then(
-    response => {
-      console.log(`response -->`, response)
-    },
-    error => {
-      console.log(`error -->`, error)
-    }
-  )
+  })
 }
 
 function openMarketOrder({ qty, side }) {
@@ -85,4 +92,5 @@ function signedRequest({ method, path, body }) {
 module.exports = {
   openLimitOrder,
   openMarketOrder,
+  openLimitOrderAtBestPrice,
 }

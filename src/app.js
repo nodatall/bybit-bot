@@ -5,7 +5,7 @@ const WebSocket = require('ws')
 
 const determineBuyOrSell = require('./ssl')
 const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
-const { openMarketOrder, openLimitOrder } = require('./trader')
+const { openLimitOrderAtBestPrice } = require('./trader')
 
 const ws = createWebsocket()
 
@@ -26,8 +26,13 @@ ws.on('message', function incoming(data) {
   }
   if (response.topic && response.topic.includes('orderBook')) {
     const { type, data } = response
-    if (type === 'snapshot') setInitialOrderBook(data)
-    else if (type === 'delta') updateOrderBook(data)
+    if (type === 'snapshot') {
+      setInitialOrderBook(data)
+      openLimitOrderAtBestPrice({ side: 'Sell' })
+    }
+    else if (type === 'delta') {
+      updateOrderBook(data)
+    }
   }
 })
 
