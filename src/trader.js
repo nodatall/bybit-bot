@@ -10,9 +10,27 @@ function openLimitOrderAtBestPrice({ side }) {
     price: side === 'Sell' ? lowestSell : highestBuy,
     side,
   }).then(
-    console.log,
+    response => {
+      console.log(`opened limit order -->`, response)
+      getActiveOrders().then(
+        response => {
+          console.log(`got active orders -->`, response.result.data)
+        },
+        console.log
+      )
+    },
     console.log,
   )
+}
+
+function getActiveOrders() {
+  return signedRequest({
+    method: 'GET',
+    path: '/open-api/order/list',
+    params: {
+      order_status: 'New,PartiallyFilled'
+    }
+  })
 }
 
 function openLimitOrder({ qty, price, side }) {
@@ -41,7 +59,7 @@ function openOrder({ qty, time_in_force, price, order_type, side }) {
   return signedRequest({
     method: 'POST',
     path: '/open-api/order/create',
-    body: {
+    params: {
       order_type,
       price,
       qty,
@@ -52,22 +70,22 @@ function openOrder({ qty, time_in_force, price, order_type, side }) {
   })
 }
 
-function signedRequest({ method, path, body }) {
+function signedRequest({ method, path, params }) {
   const timestamp = Date.now()
   const api_key = process.env.API_KEY
 
-  const params = {
+  const allParams = {
     api_key,
     timestamp,
-    ...body,
+    ...params,
   }
 
   let paramString = ''
-  Object.keys(params).sort().forEach((key, index) => {
+  Object.keys(allParams).sort().forEach((key, index) => {
     if (index === 0) {
-      paramString += `${key}=${params[key]}`
+      paramString += `${key}=${allParams[key]}`
     } else {
-      paramString += `&${key}=${params[key]}`
+      paramString += `&${key}=${allParams[key]}`
     }
   })
 
@@ -76,17 +94,27 @@ function signedRequest({ method, path, body }) {
     .update(paramString)
     .digest('hex')
 
-  return request({
+  let uri = `${process.env.URL}${path}`
+  if (method === 'GET') {
+    uri += `?${paramString}&sign=${sign}`
+  }
+
+  const options = {
     method,
-    uri: `${process.env.URL}${path}`,
+    uri,
     json: true,
-    body: {
+  }
+
+  if (method === 'POST') {
+    options.body = {
       api_key,
       timestamp,
       sign,
-      ...body,
-    },
-  })
+      ...params,
+    }
+  }
+
+  return request(options)
 }
 
 module.exports = {
