@@ -3,33 +3,113 @@ const crypto = require('crypto')
 
 const { getHighestBuyLowestSell } = require('./orderbook')
 
-function openLimitOrderAtBestPrice({ side }) {
-  const { highestBuy, lowestSell } = getHighestBuyLowestSell()
-  openLimitOrder({
-    qty: 100,
-    price: side === 'Sell' ? lowestSell : highestBuy,
+async function openLimitOrderAtBestPrice({ side }) {
+
+  const BTCPosition = (await getPosition()).result.filter(position => position.symbol === 'BTCUSD')[0]
+  const BTCBalance = BTCPosition.wallet_balance
+
+  const entryPrice = getEntryPrice(side)
+  const orderResponse = await openLimitOrder({
+    qty: Math.floor((BTCBalance * entryPrice) * 9.8),
+    price: entryPrice,
     side,
-  }).then(
-    response => {
-      console.log(`opened limit order -->`, response)
-      getActiveOrders().then(
-        response => {
-          console.log(`got active orders -->`, response.result.data)
-        },
-        console.log
-      )
-    },
-    console.log,
-  )
+  })
+
+  const random = Math.random().toString().slice(2,10)
+  console.log(`-:: Placed ${side} order at ${entryPrice} ::-`)
+
+  if (orderResponse.ret_msg && orderResponse.ret_msg.includes('cannot cover by estimated max_affordable_oc')) {
+    console.log(`-:: Not enough funds to place order ::-`)
+    return
+  }
+
+  let currentOrder = orderResponse.result
+
+  function replaceOrderUntilFilled() {
+    setTimeout(async () => {
+      const orders = ((await getOrders()).result.data)
+      const currentOrderCancelled = orders.find(order => {
+        return order.order_id === currentOrder.order_id
+          && order.order_status === 'Cancelled'
+      })
+      if (currentOrderCancelled) {
+        openLimitOrderAtBestPrice({ side })
+        return
+      }
+      const activeOrders = orders.filter(order => order.order_status !== 'Cancelled')
+      if (activeOrders.length === 0) {
+        console.log(`-:: ${side} order #${random} filled ::-`)
+        const newPosition = (await getPosition()).result.filter(position => position.symbol === 'BTCUSD')[0]
+        console.log(`newPosition -->`, newPosition)
+        return
+      }
+      let cancelledOrderQtys = 0
+      const newEntryPrice = getEntryPrice(side)
+      for (order of activeOrders) {
+        if (
+          (order.side === 'Sell' && newEntryPrice < order.price) ||
+          (order.side === 'Buy' && newEntryPrice > order.price)
+        ) {
+          await cancelActiveOrder(order.order_id)
+          cancelledOrderQtys += order.qty
+          console.log(`-:: cancelled order at ${order.price} ::-`)
+        }
+      }
+      if (cancelledOrderQtys > 0) {
+        console.log(`-:: opened new order at ${newEntryPrice} ::-`)
+        const updatedOrderResponse = await openLimitOrder({
+          qty: cancelledOrderQtys,
+          price: newEntryPrice,
+          side,
+        })
+        currentOrder = updatedOrderResponse.result
+      }
+      return replaceOrderUntilFilled()
+    }, 1500)
+  }
+
+  replaceOrderUntilFilled()
 }
 
-function getActiveOrders() {
+function getEntryPrice(side) {
+  let { highestBuy, lowestSell } = getHighestBuyLowestSell()
+  return side === 'Sell' ? +highestBuy + .5 : +lowestSell - .5
+}
+
+function cancelActiveOrder(orderId) {
+  return signedRequest({
+    method: 'POST',
+    path: '/open-api/order/cancel',
+    params: {
+      order_id: orderId,
+    }
+  })
+}
+
+function getOrders() {
   return signedRequest({
     method: 'GET',
     path: '/open-api/order/list',
     params: {
-      order_status: 'New,PartiallyFilled'
+      order_status: 'New,PartiallyFilled,Cancelled'
     }
+  })
+}
+
+function getOrderStatus({ orderId }) {
+  return signedRequest({
+    method: 'GET',
+    path: '/open-api/order/list',
+    params: {
+      order_id: orderId,
+    }
+  })
+}
+
+function getPosition() {
+  return signedRequest({
+    method: 'GET',
+    path: '/position/list'
   })
 }
 

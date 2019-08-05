@@ -28,7 +28,7 @@ ws.on('message', function incoming(data) {
     const { type, data } = response
     if (type === 'snapshot') {
       setInitialOrderBook(data)
-      openLimitOrderAtBestPrice({ side: 'Sell' })
+      openLimitOrderAtBestPrice({ side: 'Buy' })
     }
     else if (type === 'delta') {
       updateOrderBook(data)
