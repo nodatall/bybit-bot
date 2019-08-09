@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@tensorflow/tfjs-core": "^0.15.4",
+    "chalk": "^2.4.2",
     "dotenv": "^6.2.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",

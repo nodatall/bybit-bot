@@ -2,10 +2,17 @@ require('../environment')
 
 const crypto = require('crypto')
 const WebSocket = require('ws')
+const chalk = require('chalk')
 
 const determineBuyOrSell = require('./ssl')
 const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
-const { openLimitOrderAtBestPrice } = require('./trader')
+const {
+  openLimitUntilFilled,
+  getPositionsList,
+} = require('./trader')
+const {
+  setPosition,
+} = require('./position')
 
 const ws = createWebsocket()
 
@@ -14,9 +21,13 @@ let currentOrderType
 ws.on('message', function incoming(data) {
   const response = JSON.parse(data)
   if (response.ret_msg === 'pong' && response.success === true) {
-    console.log(`-:: connection successfull subscribing to candles ::-`)
-    ws.send('{"op":"subscribe","args":["kline.BTCUSD.1m"]}')
-    ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
+    console.log(chalk.green('Websocket connection success!\n'))
+    getPositionsList().then(response => {
+      setPosition(response.result)
+      ws.send('{"op": "subscribe", "args": ["position"]}')
+      ws.send('{"op": "subscribe", "args": ["kline.BTCUSD.1m"]}')
+      ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
+    })
   }
   if (response.topic && response.topic.includes('kline.BTCUSD')) {
     const buyOrSell = determineBuyOrSell(response.data)
@@ -28,11 +39,14 @@ ws.on('message', function incoming(data) {
     const { type, data } = response
     if (type === 'snapshot') {
       setInitialOrderBook(data)
-      openLimitOrderAtBestPrice({ side: 'Buy' })
+      openLimitUntilFilled({ side: 'Buy' })
     }
     else if (type === 'delta') {
       updateOrderBook(data)
     }
+  }
+  if (response.topic && response.topic.includes('position')) {
+    setPosition(response.data)
   }
 })
 
