@@ -9,6 +9,7 @@ const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
 const { saveOrders } = require('./orders')
 const {
   openLimitUntilFilled,
+  exitPositionWithLimitAtXPercent,
   getPositionsList,
 } = require('./trader')
 const {
@@ -19,7 +20,7 @@ const ws = createWebsocket()
 
 let currentOrderType
 
-ws.on('message', function incoming(data) {
+ws.on('message', async function incoming(data) {
   const response = JSON.parse(data)
   if (response.ret_msg === 'pong' && response.success === true) {
     console.log(chalk.green('Websocket connection success!\n'))
@@ -41,7 +42,7 @@ ws.on('message', function incoming(data) {
     const { type, data } = response
     if (type === 'snapshot') {
       setInitialOrderBook(data)
-      openLimitUntilFilled({ side: 'Buy' })
+      openLimitUntilFilled({ side: 'Sell' })
     }
     else if (type === 'delta') {
       updateOrderBook(data)

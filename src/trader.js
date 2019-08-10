@@ -6,20 +6,31 @@ const { getHighestBuyLowestSell } = require('./orderbook')
 const { getPosition } = require('./position')
 const { getActiveOrders } = require('./orders')
 
+async function exitPositionWithLimitAtXPercent({ percent }) {
+  const BTCPosition = getPosition()
+  const exitPrice = Math.floor(
+    ((BTCPosition.entry_price * (1 + ((percent / 100) / BTCPosition.leverage))) * 2)
+  ) / 2
+  await openLimitOrder({
+    qty: BTCPosition.size,
+    price: exitPrice,
+    side: BTCPosition.side === 'Sell' ? 'Buy' : 'Sell',
+  })
+}
+
 async function openLimitUntilFilled({ side }) {
 
   let BTCPosition = getPosition()
   const entryPrice = getEntryPrice(side)
 
   let targetQty = Math.floor((BTCPosition.wallet_balance * entryPrice) * 9.7)
-  // if (exitPosition) {
-  //   targetQty = BTCPosition.size
 
   let orderResponse = await openLimitOrder({
     qty: targetQty,
     price: entryPrice,
     side,
   })
+  console.log(chalk.grey(`Opened new order at ${entryPrice}`))
 
   replaceOrderUntilFilled()
 
@@ -28,6 +39,7 @@ async function openLimitUntilFilled({ side }) {
       BTCPosition = getPosition()
       if (BTCPosition.size >= targetQty) {
         console.log(chalk.green(`${side} for ${targetQty} filled\n`))
+        await exitPositionWithLimitAtXPercent({ percent: 1 })
         return
       }
 
@@ -50,12 +62,12 @@ async function openLimitUntilFilled({ side }) {
           }
         }
         if (cancelledOrderQtys > 0) {
-          console.log(chalk.grey(`Opened new order at ${newEntryPrice}`))
           orderResponse = await openLimitOrder({
             qty: cancelledOrderQtys,
             price: newEntryPrice,
             side,
           })
+          console.log(chalk.grey(`Opened new order at ${newEntryPrice}`))
         }
       } else {
         if (targetQty > BTCPosition.size) targetQty = targetQty - BTCPosition.size
@@ -85,16 +97,6 @@ function cancelActiveOrder(orderId) {
     }
   })
 }
-
-// function getActiveOrders() {
-//   return signedRequest({
-//     method: 'GET',
-//     path: '/open-api/order/list',
-//     params: {
-//       order_status: 'New,PartiallyFilled'
-//     }
-//   })
-// }
 
 function getOrderStatus({ orderId }) {
   return signedRequest({
@@ -195,6 +197,16 @@ function signedRequest({ method, path, params }) {
   }
 
   return request(options)
+    .then(response => {
+      handleError(response)
+      return response
+    })
+}
+
+function handleError(response) {
+  if (response.ret_msg.includes('error')) {
+    console.log(response)
+  }
 }
 
 module.exports = {
@@ -202,4 +214,5 @@ module.exports = {
   openMarketOrder,
   openLimitUntilFilled,
   getPositionsList,
+  exitPositionWithLimitAtXPercent,
 }
