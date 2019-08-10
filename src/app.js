@@ -6,6 +6,7 @@ const chalk = require('chalk')
 
 const determineBuyOrSell = require('./ssl')
 const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
+const { saveOrders } = require('./orders')
 const {
   openLimitUntilFilled,
   getPositionsList,
@@ -27,6 +28,7 @@ ws.on('message', function incoming(data) {
       ws.send('{"op": "subscribe", "args": ["position"]}')
       ws.send('{"op": "subscribe", "args": ["kline.BTCUSD.1m"]}')
       ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
+      ws.send('{"op":"subscribe","args":["order"]}')
     })
   }
   if (response.topic && response.topic.includes('kline.BTCUSD')) {
@@ -48,6 +50,10 @@ ws.on('message', function incoming(data) {
   if (response.topic && response.topic.includes('position')) {
     setPosition(response.data)
   }
+  if (response.topic && response.topic === 'order') {
+    saveOrders(response.data)
+  }
+
 })
 
 function createWebsocket() {

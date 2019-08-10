@@ -4,18 +4,16 @@ const chalk = require('chalk')
 
 const { getHighestBuyLowestSell } = require('./orderbook')
 const { getPosition } = require('./position')
+const { getActiveOrders } = require('./orders')
 
-async function openLimitUntilFilled({ side, exitPosition }) {
+async function openLimitUntilFilled({ side }) {
 
   let BTCPosition = getPosition()
   const entryPrice = getEntryPrice(side)
 
-  let targetQty
-  if (exitPosition) {
-    targetQty = BTCPosition.size
-  } else {
-    targetQty = Math.floor((BTCPosition.wallet_balance * entryPrice) * 9.7)
-  }
+  let targetQty = Math.floor((BTCPosition.wallet_balance * entryPrice) * 9.7)
+  // if (exitPosition) {
+  //   targetQty = BTCPosition.size
 
   let orderResponse = await openLimitOrder({
     qty: targetQty,
@@ -36,10 +34,10 @@ async function openLimitUntilFilled({ side, exitPosition }) {
       if (orderResponse.ret_msg && orderResponse.ret_msg.includes('cannot cover by estimated max_affordable_oc')) {
         targetQty -= .1
       }
-      const activeOrders = ((await getActiveOrders()).result.data)
+      const activeOrders = getActiveOrders()
       const newEntryPrice = getEntryPrice(side)
 
-      if (activeOrders.length) {
+      if (activeOrders.length > 0) {
         let cancelledOrderQtys = 0
         for (order of activeOrders) {
           if (
@@ -60,14 +58,13 @@ async function openLimitUntilFilled({ side, exitPosition }) {
           })
         }
       } else {
-        if (targetQty >= BTCPosition.size) targetQty = targetQty - BTCPosition.size
+        if (targetQty > BTCPosition.size) targetQty = targetQty - BTCPosition.size
         orderResponse = await openLimitOrder({
           qty: targetQty,
           price: newEntryPrice,
           side,
         })
       }
-
 
       return replaceOrderUntilFilled()
     }, 1500)
@@ -89,15 +86,15 @@ function cancelActiveOrder(orderId) {
   })
 }
 
-function getActiveOrders() {
-  return signedRequest({
-    method: 'GET',
-    path: '/open-api/order/list',
-    params: {
-      order_status: 'New,PartiallyFilled'
-    }
-  })
-}
+// function getActiveOrders() {
+//   return signedRequest({
+//     method: 'GET',
+//     path: '/open-api/order/list',
+//     params: {
+//       order_status: 'New,PartiallyFilled'
+//     }
+//   })
+// }
 
 function getOrderStatus({ orderId }) {
   return signedRequest({
