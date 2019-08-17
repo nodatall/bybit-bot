@@ -4,41 +4,68 @@ async function setInitialOrderBook(orderBookData) {
   await client.query(`DELETE FROM orderbook`)
 
   for (const order of orderBookData) {
-    const { id, price, symbol, side, size } = order
-    await client.query(
-      `
-        INSERT INTO orderbook (
-          id,
-          price,
-          symbol,
-          side,
-          size
-        ) values ($1, $2, $3, $4, $5)
-      `,
-      [id, price, symbol, side, size]
-    )
+    await addOrder(order)
   }
 }
 
-function updateOrderBook(orderBookUpdate) {
-  Object.entries(orderBookUpdate).forEach(([key, values]) => {
+async function updateOrderBook(orderBookUpdate) {
+  for (const update of Object.entries(orderBookUpdate)) {
+    const [key, values] = update
     if (key === 'delete') {
-      values.forEach(orderToDelete => {
-        if (orderToDelete.side === 'Sell') delete orderBook.sells[orderToDelete.id]
-        else delete orderBook.buys[orderToDelete.id]
-      })
+      for (const orderToDelete of values) {
+        await deleteOrder(orderToDelete.id)
+      }
     } else if (key === 'update') {
-      values.forEach(orderToUpdate => {
-        if (orderToUpdate.side === 'Sell') orderBook.sells[orderToUpdate.id] = orderToUpdate
-        else orderBook.buys[orderToUpdate.id] = orderToUpdate
-      })
+      for (const orderToUpdate of values) {
+        await updateOrder(orderToUpdate)
+      }
     } else if (key === 'insert') {
-      values.forEach(orderToInsert => {
-        if (orderToInsert.side === 'Sell') orderBook.sells[orderToInsert.id] = orderToInsert
-        else orderBook.buys[orderToInsert.id] = orderToInsert
-      })
+      for (const orderToInsert of values) {
+        await addOrder(orderToInsert)
+      }
     }
-  })
+  }
+}
+
+async function addOrder(order) {
+  const { id, price, symbol, side, size } = order
+  await client.query(
+    `
+      INSERT INTO orderbook (
+        id,
+        price,
+        symbol,
+        side,
+        size
+      ) values ($1, $2, $3, $4, $5)
+      ON CONFLICT (id)
+      DO UPDATE
+      SET price = $2, symbol = $3, side = $4, size = $5
+    `,
+    [id, price, symbol, side, size]
+  )
+}
+
+async function updateOrder(order) {
+  const { id, price, symbol, side, size } = order
+  await client.query(
+    `
+      UPDATE orderbook
+      SET price = $1, symbol = $2, side = $3, size = $4
+      WHERE id = $5
+    `,
+    [price, symbol, side, size, id]
+  )
+}
+
+async function deleteOrder(orderId) {
+  await client.query(
+    `
+      DELETE FROM orderbook
+      WHERE id = $1
+    `,
+    [orderId]
+  )
 }
 
 function getHighestBuyLowestSell() {

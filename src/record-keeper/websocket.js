@@ -45,7 +45,7 @@ ws.on('message', async function incoming(data) {
     if (type === 'snapshot') {
       setInitialOrderBook(data)
     } else if (type === 'delta') {
-      // updateOrderBook(data)
+      updateOrderBook(data)
     }
   }
   if (response.topic && response.topic.includes('position')) {
@@ -54,7 +54,6 @@ ws.on('message', async function incoming(data) {
   if (response.topic && response.topic === 'order') {
     // saveOrders(response.data)
   }
-console.log(`response -->`, response)
 })
 
 function createWebsocket() {
