@@ -6,11 +6,24 @@ const { getHighestBuyLowestSell } = require('./orderbook')
 const { getPosition } = require('./position')
 const { getActiveOrders } = require('./orders')
 
+async function marketSellCurrentPosition() {
+  const BTCPosition = getPosition()
+  if (BTCPosition.size === 0) return
+  return await openMarketOrder({
+    qty: BTCPosition.size,
+    side: BTCPosition.side === 'Sell' ? 'Buy' : 'Sell',
+  })
+}
+
 async function exitPositionWithLimitAtXPercent({ percent }) {
   const BTCPosition = getPosition()
-  const exitPrice = Math.floor(
-    ((BTCPosition.entry_price * (1 + ((percent / 100) / BTCPosition.leverage))) * 2)
-  ) / 2
+  const exitPrice = BTCPosition.side === 'Sell' ?
+    Math.floor(
+      ((BTCPosition.entry_price * (1 - ((percent / 100) / BTCPosition.leverage))) * 2)
+    ) / 2 :
+    Math.floor(
+      ((BTCPosition.entry_price * (1 + ((percent / 100) / BTCPosition.leverage))) * 2)
+    ) / 2
   await openLimitOrder({
     qty: BTCPosition.size,
     price: exitPrice,
@@ -22,6 +35,8 @@ async function openLimitUntilFilled({ side }) {
 
   let BTCPosition = getPosition()
   const entryPrice = getEntryPrice(side)
+  console.log(`BTCPosition -->`, BTCPosition)
+  console.log(`BTCPosition.wallet_balance -->`, BTCPosition.wallet_balance)
 
   let targetQty = Math.floor((BTCPosition.wallet_balance * entryPrice) * 9.7)
 
@@ -37,6 +52,7 @@ async function openLimitUntilFilled({ side }) {
   function replaceOrderUntilFilled() {
     setTimeout(async () => {
       BTCPosition = getPosition()
+
       if (BTCPosition.size >= targetQty) {
         console.log(chalk.green(`${side} for ${targetQty} filled\n`))
         await exitPositionWithLimitAtXPercent({ percent: 1 })
@@ -63,23 +79,33 @@ async function openLimitUntilFilled({ side }) {
         }
         if (cancelledOrderQtys > 0) {
           orderResponse = await openLimitOrder({
-            qty: cancelledOrderQtys,
+            qty: Math.floor(cancelledOrderQtys),
             price: newEntryPrice,
             side,
           })
           console.log(chalk.grey(`Opened new order at ${newEntryPrice}`))
         }
       } else {
-        if (targetQty > BTCPosition.size) targetQty = targetQty - BTCPosition.size
+        if (targetQty > Math.ceil(BTCPosition.size)) targetQty = Math.floor(targetQty - Math.ceil(BTCPosition.size))
         orderResponse = await openLimitOrder({
           qty: targetQty,
           price: newEntryPrice,
           side,
         })
+        console.log(chalk.grey(`Opened new order at ${newEntryPrice}`))
       }
 
       return replaceOrderUntilFilled()
     }, 1500)
+  }
+}
+
+async function cancellAllActiveOrders(){
+  const activeOrders = getActiveOrders()
+  if (activeOrders.length > 0) {
+    for (order of activeOrders) {
+      await cancelActiveOrder(order.order_id)
+    }
   }
 }
 
@@ -98,12 +124,12 @@ function cancelActiveOrder(orderId) {
   })
 }
 
-function getOrderStatus({ orderId }) {
+function getActiveOrdersFromApi() {
   return signedRequest({
     method: 'GET',
     path: '/open-api/order/list',
     params: {
-      order_id: orderId,
+      order_status: 'New,PartiallyFilled'
     }
   })
 }
@@ -215,4 +241,7 @@ module.exports = {
   openLimitUntilFilled,
   getPositionsList,
   exitPositionWithLimitAtXPercent,
+  marketSellCurrentPosition,
+  cancellAllActiveOrders,
+  getActiveOrdersFromApi,
 }

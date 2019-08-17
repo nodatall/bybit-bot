@@ -1,5 +1,7 @@
 const SMA = require('technicalindicators').SMA
 
+const { getHighestBuyLowestSell } = require('./orderbook')
+
 const highs = []
 const lows = []
 let lastPeriod
@@ -12,7 +14,7 @@ module.exports = function(candles) {
     lastPeriod = open_time
     highs.push(high)
     lows.push(low)
-  } else if (open_time - lastPeriod === 360) {
+  } else if (open_time - lastPeriod === process.env.PERIOD * 60) {
     lastPeriod = open_time
     highs.push(high)
     lows.push(low)
@@ -42,11 +44,28 @@ function calculateSSL({lows, highs, close}) {
   const sslDown = hlv < 0 ? highSMA : lowSMA
   const sslUp = hlv < 0 ? lowSMA : highSMA
   if (sslUp > sslDown) {
-    if (buy === undefined) buy = true
-    if (!buy) return 'buy'
-    buy = true
+    if (buy === undefined) {
+      buy = true
+      return
+    }
+    if (!buy) {
+      console.log(`-:: just switched to buy buy buy ::-`)
+      buy = true
+      return 'buy'
+    }
+    const { highestBuy } = getHighestBuyLowestSell()
+    console.log(`highestBuy -->`, highestBuy)
+    console.log(`lowSMA -->`, lowSMA)
+    console.log(`highSMA -->`, highSMA)
   } else {
-    if (buy) return 'sell'
-    buy = false
+    if (buy) {
+      console.log(`-:: just switched to sell sell sell ::-`)
+      buy = false
+      return 'sell'
+    }
+    const { lowestSell } = getHighestBuyLowestSell()
+    console.log(`lowestSell -->`, lowestSell)
+    console.log(`lowSMA -->`, lowSMA)
+    console.log(`highSMA -->`, highSMA)
   }
 }

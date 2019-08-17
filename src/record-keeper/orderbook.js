@@ -1,13 +1,23 @@
-const orderBook = {
-  buys: {},
-  sells: {},
-}
+const client = require('../../database')
 
-function setInitialOrderBook(orderBookData) {
-  orderBookData.forEach(order => {
-    if (order.side === 'Sell') orderBook.sells[order.id] = order
-    if (order.side === 'Buy') orderBook.buys[order.id] = order
-  })
+async function setInitialOrderBook(orderBookData) {
+  await client.query(`DELETE FROM orderbook`)
+
+  for (const order of orderBookData) {
+    const { id, price, symbol, side, size } = order
+    await client.query(
+      `
+        INSERT INTO orderbook (
+          id,
+          price,
+          symbol,
+          side,
+          size
+        ) values ($1, $2, $3, $4, $5)
+      `,
+      [id, price, symbol, side, size]
+    )
+  }
 }
 
 function updateOrderBook(orderBookUpdate) {
