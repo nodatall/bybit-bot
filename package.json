@@ -14,7 +14,7 @@
     "pg-promise": "^8.5.5"
   },
   "scripts": {
-    "start:websocket": "./scripts/start-websocket",
+    "start:websocket": "./scripts/db-setup && ./scripts/start-websocket",
     "db:create": "./scripts/db-create",
     "db:drop": "./scripts/db-drop",
     "db:migrate": "./scripts/db-migrate",

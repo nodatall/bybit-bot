@@ -4,7 +4,7 @@ const crypto = require('crypto')
 const WebSocket = require('ws')
 const chalk = require('chalk')
 
-const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
+const { updateOrderBook, setInitialOrderBook, getHighestBuyLowestSell } = require('./orderbook')
 // const { saveOrders } = require('../orders')
 // const { setPosition } = require('../position')
 // const { saveCandles } = require('./historicalData')

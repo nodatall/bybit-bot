@@ -68,15 +68,13 @@ async function deleteOrder(orderId) {
   )
 }
 
-function getHighestBuyLowestSell() {
-  const highestBuy = Object.values(orderBook.buys)
-    .map(order => order.price)
-    .sort(function(a, b){return b-a})[0]
-  const lowestSell = Object.values(orderBook.sells)
-    .map(order => order.price)
-    .sort(function(a, b){return a-b})[0]
+async function getHighestBuyLowestSell() {
+  const orders = await client.query(`SELECT * FROM orderbook ORDER BY price`)
 
-  return { highestBuy, lowestSell }
+  return {
+    highestBuy: orders[(orders.length / 2) - 1],
+    lowestSell: orders[orders.length / 2],
+  }
 }
 
 module.exports = {
