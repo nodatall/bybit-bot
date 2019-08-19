@@ -29,6 +29,17 @@ exports.up = async db => {
         qty decimal NOT NULL,
         time_in_force text NOT NULL
       );
+
+      CREATE TABLE candles (
+        symbol text NOT NULL,
+        open_time integer PRIMARY KEY,
+        open decimal NOT NULL,
+        high decimal NOT NULL,
+        low decimal NOT NULL,
+        close decimal NOT NULL,
+        volume decimal NOT NULL,
+        turnover decimal NOT NULL
+      )
     `
   )
 }
