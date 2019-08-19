@@ -8,10 +8,7 @@ const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
 const { saveOrders } = require('./orders')
 const { setPosition } = require('./position')
 const { saveCandles } = require('./candles')
-const {
-  getPositionsList,
-  getActiveOrders,
-} = require('../api')
+const { getPositionsList, getActiveOrders } = require('../api')
 
 const ws = createWebsocket()
 
