@@ -1,5 +1,7 @@
 const client = require('../../database')
 
+const { getPositionsList } = require('../api')
+
 async function setPosition(positionData) {
   for (const position of positionData) {
     const {
@@ -30,6 +32,9 @@ async function setPosition(positionData) {
             liq_price,
             wallet_balance
           ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ON CONFLICT (id)
+          DO UPDATE
+          SET wallet_balance = $9
         `,
         [
           id,
@@ -72,6 +77,11 @@ async function setPosition(positionData) {
   }
 }
 
+async function updateWalletBalance() {
+  const positions = await getPositionsList()
+  await setPosition(positions.result)
+}
+
 async function getPosition(symbol = 'BTCUSD') {
   return positions[symbol]
 }
@@ -79,4 +89,5 @@ async function getPosition(symbol = 'BTCUSD') {
 module.exports = {
   setPosition,
   getPosition,
+  updateWalletBalance,
 }
