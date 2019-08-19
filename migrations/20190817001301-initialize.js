@@ -7,6 +7,18 @@ exports.up = async db => {
         symbol text NOT NULL,
         side text NOT NULL,
         size integer NOT NULL
+      );
+
+      CREATE TABLE position (
+        id integer PRIMARY KEY,
+        symbol text NOT NULL,
+        side text NOT NULL,
+        size decimal NOT NULL,
+        position_value decimal NOT NULL,
+        entry_price decimal NOT NULL,
+        leverage integer NOT NULL,
+        liq_price decimal NOT NULL,
+        wallet_balance decimal NOT NULL
       )
     `
   )

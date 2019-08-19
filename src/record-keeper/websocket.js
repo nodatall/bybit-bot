@@ -4,14 +4,14 @@ const crypto = require('crypto')
 const WebSocket = require('ws')
 const chalk = require('chalk')
 
-const { updateOrderBook, setInitialOrderBook, getHighestBuyLowestSell } = require('./orderbook')
+const { updateOrderBook, setInitialOrderBook } = require('./orderbook')
 // const { saveOrders } = require('../orders')
-// const { setPosition } = require('../position')
+const { setPosition } = require('./position')
 // const { saveCandles } = require('./historicalData')
-// const {
-//   getPositionsList,
+const {
+  getPositionsList,
 //   getActiveOrdersFromApi,
-// } = require('../api')
+} = require('../api')
 
 const ws = createWebsocket()
 
@@ -21,20 +21,22 @@ ws.on('message', async function incoming(data) {
     console.log(chalk.green('\nWebsocket connection success!'))
     ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
 
-    // getPositionsList()
-    //   .then(response => {
-    //     setPosition(response.result)
-    //     console.log(chalk.blue('Initialized position object'))
-    //     return getActiveOrdersFromApi()
-    //   })
-    //   .then(response => {
-    //     saveOrders(response.result.data)
-    //     console.log(chalk.blue('Initialized orders object\n'))
-    //     ws.send('{"op": "subscribe", "args": ["position"]}')
-    //     ws.send('{"op": "subscribe", "args": ["kline.BTCUSD.1m"]}')
-        // ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
-    //     ws.send('{"op":"subscribe","args":["order"]}')
-    //   })
+    getPositionsList()
+      .then(response => {
+        setPosition(response.result)
+        console.log(chalk.blue('Initialized position object'))
+        ws.send('{"op": "subscribe", "args": ["position"]}')
+
+        // return getActiveOrdersFromApi()
+      })
+      // .then(response => {
+      //   saveOrders(response.result.data)
+      //   console.log(chalk.blue('Initialized orders object\n'))
+      //   ws.send('{"op": "subscribe", "args": ["position"]}')
+      //   ws.send('{"op": "subscribe", "args": ["kline.BTCUSD.1m"]}')
+      //   ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
+      //   ws.send('{"op":"subscribe","args":["order"]}')
+      // })
   }
   if (response.topic && response.topic.includes('kline.BTCUSD')) {
     // start strategy giving response.data as argument
@@ -49,7 +51,7 @@ ws.on('message', async function incoming(data) {
     }
   }
   if (response.topic && response.topic.includes('position')) {
-    // setPosition(response.data)
+    setPosition(response.data)
   }
   if (response.topic && response.topic === 'order') {
     // saveOrders(response.data)
