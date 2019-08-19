@@ -19,7 +19,16 @@ exports.up = async db => {
         leverage integer NOT NULL,
         liq_price decimal NOT NULL,
         wallet_balance decimal NOT NULL
-      )
+      );
+
+      CREATE TABLE orders (
+        order_id text PRIMARY KEY,
+        symbol text NOT NULL,
+        side text NOT NULL,
+        price decimal NOT NULL,
+        qty decimal NOT NULL,
+        time_in_force text NOT NULL
+      );
     `
   )
 }

@@ -124,7 +124,7 @@ function cancelActiveOrder(orderId) {
   })
 }
 
-function getActiveOrdersFromApi() {
+function getActiveOrders() {
   return signedRequest({
     method: 'GET',
     path: '/open-api/order/list',
@@ -243,5 +243,5 @@ module.exports = {
   // exitPositionWithLimitAtXPercent,
   // marketSellCurrentPosition,
   // cancellAllActiveOrders,
-  // getActiveOrdersFromApi,
+  getActiveOrders,
 }
