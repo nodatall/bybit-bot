@@ -82,6 +82,16 @@ async function updateWalletBalance() {
   await setPosition(positions.result)
 }
 
+async function getPosition(symbol = 'BTCUSD') {
+  return await client.query(
+    `
+      SELECT * FROM position
+      WHERE symbol = $1;
+    `,
+    [symbol]
+  )
+}
+
 module.exports = {
   setPosition,
   getPosition,

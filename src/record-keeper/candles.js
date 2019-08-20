@@ -27,6 +27,17 @@ async function saveCandles(candleData) {
   )
 }
 
+async function getCandles(limit = 10) {
+  return await client.query(
+    `
+      SELECT * FROM candles
+      ORDER BY open_time DESC
+      LIMIT $1
+    `,
+    [limit]
+  )
+}
+
 module.exports = {
   saveCandles,
 }

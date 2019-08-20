@@ -23,7 +23,7 @@ ws.on('message', async function incoming(data) {
     console.log(chalk.blue('Initialized position'))
 
     const activeOrders = await getActiveOrders()
-    await saveOrders(activeOrders.result.data)
+    if (activeOrders.result) await saveOrders(activeOrders.result.data)
     console.log(chalk.blue('Initialized orders\n'))
 
     ws.send('{"op": "subscribe", "args": ["position"]}')
@@ -31,10 +31,11 @@ ws.on('message', async function incoming(data) {
     ws.send('{"op": "subscribe", "args": ["orderBookL2_25.BTCUSD"]}')
     ws.send('{"op": "subscribe", "args": ["order"]}')
   }
-  if (response.topic && response.topic.includes('kline.BTCUSD')) {
-    saveCandles(response.data)
-  }
-  if (response.topic && response.topic.includes('orderBook')) {
+  if (!response.topic) return
+  if (response.topic === 'position') setPosition(response.data)
+  if (response.topic === 'order') saveOrders(response.data)
+  if (response.topic.includes('kline.BTCUSD')) saveCandles(response.data)
+  if (response.topic.includes('orderBook')) {
     const { type, data } = response
     if (type === 'snapshot') {
       setInitialOrderBook(data)
@@ -42,12 +43,7 @@ ws.on('message', async function incoming(data) {
       updateOrderBook(data)
     }
   }
-  if (response.topic && response.topic.includes('position')) {
-    setPosition(response.data)
-  }
-  if (response.topic && response.topic === 'order') {
-    saveOrders(response.data)
-  }
+
 })
 
 function createWebsocket() {

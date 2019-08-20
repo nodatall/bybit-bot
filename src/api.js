@@ -11,14 +11,15 @@ function cancelActiveOrder(orderId) {
   })
 }
 
-function getActiveOrders() {
-  return signedRequest({
+async function getActiveOrders() {
+  const response = await signedRequest({
     method: 'GET',
     path: '/open-api/order/list',
     params: {
       order_status: 'New,PartiallyFilled'
     }
   })
+  return response.result.data
 }
 
 function getPositionsList() {
