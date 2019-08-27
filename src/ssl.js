@@ -1,11 +1,23 @@
 const SMA = require('technicalindicators').SMA
 
-const { getCandles } = require('../record-keeper/candles')
+const { getCandles } = require('./record-keeper/candles')
 
 const oneMinSSLTracker = {}
+const threeMinSSLTracker = {}
 
 async function oneMinSSL() {
-  const { highs, lows, close } = await processCandles()
+  return await sslForPeriod(oneMinSSLTracker)
+}
+
+async function threeMinSSL() {
+  return await sslForPeriod(threeMinSSLTracker, 3)
+}
+
+async function sslForPeriod(sslTracker, period = 1) {
+  const processedCandles = await processCandles(period)
+  if (processedCandles === 'pending candles') return processedCandles
+
+  const { highs, lows, close } = processedCandles
   const ssl = calculateSSL({
     lows,
     highs,
@@ -14,16 +26,19 @@ async function oneMinSSL() {
     buy: oneMinSSLTracker.buy,
     crossed: oneMinSSLTracker.crossed,
   })
-  Object.assign(oneMinSSLTracker, ssl)
+
+  Object.assign(sslTracker, ssl)
 
   return {
-    side: oneMinSSLTracker.buy,
-    crossed: oneMinSSLTracker.crossed,
+    buy: sslTracker.buy,
+    sslUp: sslTracker.sslUp,
+    sslDown: sslTracker.sslDown,
+    crossed: sslTracker.crossed,
   }
 }
 
 async function processCandles(period = 1) {
-  const candles = await getCandles(period * 10)
+  const candles = await getCandles((period * 10) +1)
   if (candles.length < ((period * 10) + (1 * period))) return 'pending candles'
   const lows = []
   const highs = []
@@ -31,12 +46,14 @@ async function processCandles(period = 1) {
   let tmpHigh = -Infinity
   let pushTmpCount = 0
   candles.forEach(candle => {
-    tmpLow = candle.low < tmpLow ? candle.low : tmpLow
-    tmpHigh = candle.high > tmpHigh ? candle.high : tmpHigh
+    tmpLow = candle.low < tmpLow ? +candle.low : tmpLow
+    tmpHigh = candle.high > tmpHigh ? +candle.high : tmpHigh
     pushTmpCount++
     if (pushTmpCount === period) {
-      lows.push(tmpLow)
-      highs.push(tmpHigh)
+      lows.push(+tmpLow)
+      highs.push(+tmpHigh)
+      tmpLow = Infinity
+      tmpHigh = -Infinity
       pushTmpCount = 0
     }
   })
@@ -52,8 +69,8 @@ function calculateSSL({
   buy,
   crossed = false,
 }) {
-  const lowSMAs = SMA.calculate({ period: 10, values: lows })
-  const highSMAs = SMA.calculate({ period: 10, values: highs })
+  const lowSMAs = SMA.calculate({ period: 10, values: lows.reverse() })
+  const highSMAs = SMA.calculate({ period: 10, values: highs.reverse() })
   const lowSMA = lowSMAs[lowSMAs.length - 1]
   const highSMA = highSMAs[highSMAs.length - 1]
   hlv = close > highSMA ? 1 : close < lowSMA ? - 1 : hlv
@@ -77,6 +94,8 @@ function calculateSSL({
   }
 
   return {
+    sslDown,
+    sslUp,
     buy,
     crossed,
     hlv,
@@ -85,4 +104,5 @@ function calculateSSL({
 
 module.exports = {
   oneMinSSL,
+  threeMinSSL,
 }

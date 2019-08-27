@@ -40,4 +40,5 @@ async function getCandles(limit = 10) {
 
 module.exports = {
   saveCandles,
+  getCandles,
 }

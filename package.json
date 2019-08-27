@@ -15,6 +15,7 @@
   },
   "scripts": {
     "start:websocket": "./scripts/db-setup && ./scripts/start-websocket",
+    "start": "./scripts/start",
     "db:create": "./scripts/db-create",
     "db:drop": "./scripts/db-drop",
     "db:migrate": "./scripts/db-migrate",
