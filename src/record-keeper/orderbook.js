@@ -70,10 +70,21 @@ async function deleteOrder(orderId) {
 
 async function getHighestBuyLowestSell() {
   const orders = await client.query(`SELECT * FROM orderbook ORDER BY price`)
+  let highestBuy
+  let lowestSell
+
+  for (let i = 0; i < orders.length; i++) {
+    const currentOrder = orders[i]
+    const nextOrder = orders[i + 1]
+    if (currentOrder.side === 'Buy' && nextOrder.side === 'Sell') {
+      highestBuy = currentOrder.price
+      lowestSell = nextOrder.price
+    }
+  }
 
   return {
-    highestBuy: orders[(orders.length / 2) - 1],
-    lowestSell: orders[orders.length / 2],
+    highestBuy,
+    lowestSell,
   }
 }
 

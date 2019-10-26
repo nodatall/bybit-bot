@@ -22,9 +22,9 @@ async function sslForPeriod(sslTracker, period = 1) {
     lows,
     highs,
     close,
-    hlv: oneMinSSLTracker.hlv,
-    buy: oneMinSSLTracker.buy,
-    crossed: oneMinSSLTracker.crossed,
+    hlv: sslTracker.hlv,
+    buy: sslTracker.buy,
+    crossed: sslTracker.crossed,
   })
 
   Object.assign(sslTracker, ssl)
@@ -38,7 +38,7 @@ async function sslForPeriod(sslTracker, period = 1) {
 }
 
 async function processCandles(period = 1) {
-  const candles = await getCandles((period * 10) +1)
+  const candles = await getCandles((period * 10) + (1 * period))
   if (candles.length < ((period * 10) + (1 * period))) return 'pending candles'
   const lows = []
   const highs = []

@@ -61,3 +61,6 @@ function createWebsocket() {
 
   return ws
 }
+
+// TODO check if websocket has been interupted, and try to re-establish if so, if candles are out of whack,
+// reset the relevant tables
